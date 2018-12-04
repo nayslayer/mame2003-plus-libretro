@@ -39,6 +39,8 @@ extern int          retroKeyState[512];
 int                 retroJsState[109]= {0}; // initialise to zero - we are only reading 4 players atm
 extern int16_t      mouse_x[4];
 extern int16_t      mouse_y[4];
+extern int16_t      lightgun_x[4];
+extern int16_t      lightgun_y[4];
 extern int16_t      analogjoy[4][4];
 struct ipd          *default_inputs; /* pointer the array of structs with default MAME input mappings and labels */
 
@@ -874,7 +876,7 @@ static void set_content_flags(void)
 				case IPT_LIGHTGUN_X:
 				case IPT_LIGHTGUN_Y:
           options.content_flags[CONTENT_LIGHTGUN] = true;
-          log_cb(RETRO_LOG_INFO, LOGPRE "Content identified as using Analog/Digital stick controls.\n");
+          log_cb(RETRO_LOG_INFO, LOGPRE "Content identified as using Lightgun controls.\n");
 					break;
 				case IPT_SERVICE :
           options.content_flags[CONTENT_HAS_SERVICE] = true;
@@ -1066,8 +1068,10 @@ void retro_run (void)
         retroJsState[20 + offset] = analogjoy[i][3] < -0x4000 ? 1 : 0;
 	  }   
  
-
- }
+     /* Lightgun */
+     lightgun_x[i] = input_cb(i, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_X);
+     lightgun_y[i] = input_cb(i, RETRO_DEVICE_LIGHTGUN, 0, RETRO_DEVICE_ID_LIGHTGUN_SCREEN_Y);
+   }
 
    mame_frame();
 
@@ -1681,6 +1685,8 @@ struct JoystickInfo alternate_joystick_maps[PLAYER_COUNT][IDX_PAD_end][PER_PLAYE
 
 int16_t mouse_x[4];
 int16_t mouse_y[4];
+int16_t lightgun_x[4];
+int16_t lightgun_y[4];
 int16_t analogjoy[4][4];
 
 struct JoystickInfo mame_joy_map[(PLAYER_COUNT * PER_PLAYER_CTRL_COUNT) + 1]; /* + 1 for final zeroed struct */
@@ -1738,11 +1744,6 @@ int osd_is_joystick_axis_code(int joycode)
     return 1;
 }
 
-void osd_lightgun_read(int player, int *deltax, int *deltay)
-{
-
-}
-
 void osd_trak_read(int player, int *deltax, int *deltay)
 {
     *deltax = mouse_x[player];
@@ -1755,6 +1756,12 @@ int convert_analog_scale(int input)
     static int analog_range = ANALOG_MAX - ANALOG_MIN;
 
     return (input - LIBRETRO_ANALOG_MIN)*analog_range / libretro_analog_range + ANALOG_MIN;
+}
+
+void osd_lightgun_read(int player, int *deltax, int *deltay)
+{
+   *deltax = convert_analog_scale(lightgun_x[player]);
+   *deltay = convert_analog_scale(lightgun_y[player]);
 }
 
 void osd_analogjoy_read(int player,int analog_axis[MAX_ANALOG_AXES], InputCode analogjoy_input[MAX_ANALOG_AXES])
